@@ -119,6 +119,7 @@ LiteORM ensures thread safety by maintaining separate connections per thread. Wh
 ### Error Handling
 
 The library raises standard Python exceptions:
+
 * `RecordNotFound`: When attempting to access a record that doesn't exist.
 * `FieldNotFound`: When referencing a column or field that isn't present in the table.
 

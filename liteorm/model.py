@@ -74,7 +74,7 @@ class Model:
         self.__subobjects = dict()
         self.__data = dict()
         self.__modified = True
-        if len(kwargs) < len(self.__annotations__) and kwargs.get(self.primary_key, None) is not None:
+        if len(kwargs) < len(self.__class__.__annotations__) and kwargs.get(self.primary_key, None) is not None:
             self.set_pk_val(kwargs.pop(self.primary_key))
             self.reload()
         self.fill(kwargs)
@@ -163,30 +163,30 @@ class Model:
     def fill(self, data: Union[dict, tuple]) -> Self:
         if isinstance(data, dict):
             for col, val in data.items():
-                if col in self.__annotations__:
+                if col in self.__class__.__annotations__:
                     self.set_value(col, val)
         else:
-            assert len(self.__annotations__) == len(data)
-            for col, val in zip(self.__annotations__.keys(), data):
+            assert len(self.__class__.__annotations__) == len(data)
+            for col, val in zip(self.__class__.__annotations__.keys(), data):
                 self.set_value(col, val)
         return self
 
 
     def get_value(self, column: str, raw: bool = False) -> Any:
-        assert column in self.__annotations__
-        if (not raw) and issubclass(self.__annotations__[column], Model):
+        assert column in self.__class__.__annotations__
+        if (not raw) and issubclass(self.__class__.__annotations__[column], Model):
             if self.__subobjects.get(column, None) is None:
                 if self.__data.get(column, None) is None:
                     return None
-                model_class = self.__annotations__[column]
+                model_class = self.__class__.__annotations__[column]
                 self.__subobjects[column] = model_class(**{model_class.primary_key: self.__data[column]})
             return self.__subobjects[column]
         return self.__data.get(column, None)
 
 
     def set_value(self, column: str, value: Any):
-        assert column in self.__annotations__
-        dtype = self.__annotations__[column]
+        assert column in self.__class__.__annotations__
+        dtype = self.__class__.__annotations__[column]
         self.__modified = True
         if issubclass(dtype, Model):
             if isinstance(value, dtype):
@@ -200,13 +200,13 @@ class Model:
 
 
     def __getattr__(self, name: str) -> Any:
-        if name in self.__annotations__:
+        if name in self.__class__.__annotations__:
             return self.get_value(name)
         raise FieldNotFound(self.table_name, name)
 
 
     def __setattr__(self, name: str, value: Any):
-        if name in self.__annotations__:
+        if name in self.__class__.__annotations__:
             return self.set_value(name, value)
         return super().__setattr__(name, value)
 
@@ -228,10 +228,10 @@ class Model:
 
 
     def get_recursive_by(self, column: str, key_column: Union[str, None] = None, include_self : bool = True) -> Iterator[Self]:
-        assert column in self.__annotations__
-        assert self.__annotations__[column] == self.__class__ or self.primary_key == column
+        assert column in self.__class__.__annotations__
+        assert self.__class__.__annotations__[column] == self.__class__ or self.primary_key == column
         if key_column is None: key_column = self.primary_key
-        assert key_column in self.__annotations__
+        assert key_column in self.__class__.__annotations__
         assert key_column != column
         pk_val = self.get_pk_val()
         cursor = self.database.get_cursor()
